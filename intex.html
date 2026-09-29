@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Shinobi Chronicles: Demo + Combat</title>
+  <style>
+    :root {
+      --bg: #11141c;
+      --card-bg: #1a202c;
+      --accent: #f39c12;
+      --text: #ecf0f1;
+      --subtext: #94a3b8;
+      --danger: #e74c3c;
+      --success: #2ecc71;
+      --blue: #3498db;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0b0d13; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: var(--text); }
+    #app-container {
+      width: 100%; max-width: 420px; height: 100vh; max-height: 860px;
+      background: var(--bg); display: flex; flex-direction: column;
+      border: 1px solid #2a3346; border-radius: 12px; overflow: hidden; position: relative;
+    }
+    .header { padding: 12px 16px; background: var(--card-bg); border-bottom: 1px solid #2a3346; text-align: center; font-weight: bold; font-size: 15px; }
+    .content { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .card { background: var(--card-bg); border-radius: 8px; padding: 12px; border: 1px solid #2a3346; }
+    h2, h3 { color: var(--accent); margin-bottom: 6px; }
+    p { font-size: 13px; line-height: 1.4; color: var(--text); }
+    .sub { font-size: 11px; color: var(--subtext); }
+    input, select {
+      width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #3d4a66;
+      background: #10141d; color: var(--text); font-size: 13px; margin-top: 4px;
+    }
+    .stat-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
+    .stat-btn {
+      width: 28px; height: 28px; border-radius: 6px; border: none;
+      background: #2a354d; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer;
+    }
+    .primary-btn {
+      width: 100%; padding: 12px; background: var(--accent); border: none;
+      border-radius: 8px; color: #12151c; font-size: 14px; font-weight: bold;
+      cursor: pointer; margin-top: auto;
+    }
+    .choice-btn {
+      width: 100%; padding: 10px 12px; background: #222b3d; border: 1px solid #374461;
+      border-radius: 8px; color: var(--text); text-align: left; font-size: 13px;
+      cursor: pointer; margin-top: 6px;
+    }
+    .choice-btn:active { background: #323f59; border-color: var(--accent); }
+    .dialogue-box { background: #161c28; border-left: 3px solid var(--accent); padding: 10px; border-radius: 4px; font-size: 13px; font-style: italic; }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #2f3b52; color: #f1c40f; }
+    
+    /* Боевые стили */
+    .battle-bar-container { width: 100%; background: #2a3346; border-radius: 4px; height: 8px; overflow: hidden; margin-top: 4px; }
+    .battle-bar { height: 100%; transition: width 0.3s ease; }
+    .log-box { background: #0c0f17; border: 1px solid #232b3b; border-radius: 6px; padding: 8px; height: 110px; overflow-y: auto; font-size: 11px; line-height: 1.4; color: #cbd5e1; }
+    .combat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .action-btn { padding: 10px 6px; background: #222b3d; border: 1px solid #374461; border-radius: 6px; color: var(--text); font-size: 11px; cursor: pointer; text-align: center; }
+    .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  <div class="header" id="screen-title">Регистрация Шиноби</div>
+  <div class="content" id="screen-content"></div>
+</div>
+
+<script>
+// --- ИГРОВОЕ СОСТОЯНИЕ ---
+const state = {
+  name: "Рэн",
+  clan: "uzumaki",
+  element: "fire",
+  elementNames: { fire: "Огонь", wind: "Ветер", lightning: "Молния", earth: "Земля", water: "Вода" },
+  pointsLeft: 5,
+  stats: {
+    taijutsu: 3,
+    ninjutsu: 3,
+    genjutsu: 3,
+    chakraControl: 3,
+    intellect: 3,
+    charisma: 3
+  },
+  clansData: {
+    uzumaki: { name: "Узумаки", bonus: { chakraControl: 2, taijutsu: 1 }, perk: "Живучесть (+25 чакры, реген)" },
+    uchiha: { name: "Учиха", bonus: { ninjutsu: 2, genjutsu: 1 }, perk: "Шаринган (Уклонение)" },
+    hyuga: { name: "Хьюга", bonus: { taijutsu: 2, chakraControl: 1 }, perk: "Мягкий кулак (Сжигает чакру)" },
+    senju: { name: "Сенджу", bonus: { taijutsu: 2, ninjutsu: 1 }, perk: "Тело Мудреца (-15% урона)" },
+    sarutobi: { name: "Сарутоби", bonus: { ninjutsu: 2, intellect: 1 }, perk: "Арсенал стихий (-20% чакры дзюцу)" },
+    nara: { name: "Нара", bonus: { intellect: 2, genjutsu: 1 }, perk: "Теневой расчет (+1 ОД на старте)" },
+    orphan: { name: "Бесклановый", bonus: { taijutsu: 1, ninjutsu: 1, genjutsu: 1, chakraControl: 1, intellect: 1, charisma: 1 }, perk: "Стальная воля (Стойкость)" }
+  },
+  relations: { naruto: 10, sasuke: 5, hinata: 15 },
+  selectedPartner: "naruto",
+  ryo: 500
+};
+
+// Боевое состояние
+let combat = null;
+
+const dom = {
+  title: document.getElementById("screen-title"),
+  content: document.getElementById("screen-content")
+};
+
+function getEffectiveStat(stat) {
+  return state.stats[stat] + (state.clansData[state.clan].bonus[stat] || 0);
+}
+
+function getMaxHp() {
+  return 50 + (getEffectiveStat('taijutsu') * 5);
+}
+
+function getMaxChakra() {
+  return 40 + (getEffectiveStat('chakraControl') * 5) + (state.clan === 'uzumaki' ? 25 : 0);
+}
+
+// --- 1. ЭКРАН СОЗДАНИЯ ПЕРСОНАЖА ---
+function renderCreation() {
+  dom.title.innerText = "Создание Генина";
+  dom.content.innerHTML = `
+    <div class="card">
+      <p class="sub">Личное дело</p>
+      <input type="text" id="p-name" value="${state.name}" placeholder="Имя шиноби">
+      <select id="p-clan" onchange="state.clan=this.value; renderCreation();">
+        ${Object.keys(state.clansData).map(k => `<option value="${k}" ${k===state.clan?'selected':''}>Клан ${state.clansData[k].name}</option>`).join('')}
+      </select>
+      <select id="p-elem" onchange="state.element=this.value">
+        <option value="fire" ${state.element==='fire'?'selected':''}>Стихия: Огонь (Катон)</option>
+        <option value="wind" ${state.element==='wind'?'selected':''}>Стихия: Ветер (Футон)</option>
+        <option value="lightning" ${state.element==='lightning'?'selected':''}>Стихия: Молния (Райтон)</option>
+        <option value="earth" ${state.element==='earth'?'selected':''}>Стихия: Земля (Дотон)</option>
+        <option value="water" ${state.element==='water'?'selected':''}>Стихия: Вода (Суйтон)</option>
+      </select>
+      <p class="sub" style="margin-top:6px;">Пассивка: <span style="color:var(--accent);">${state.clansData[state.clan].perk}</span></p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <p class="sub">Характеристики (Кап: 8)</p>
+        <span class="badge">Очков: <span id="pts">${state.pointsLeft}</span></span>
+      </div>
+      <div id="stats-list"></div>
+    </div>
+
+    <button class="primary-btn" onclick="finishCreation()">Вручение протектора →</button>
+  `;
+  renderStatRows();
+}
+
+function renderStatRows() {
+  const container = document.getElementById("stats-list");
+  const clanBonus = state.clansData[state.clan].bonus;
+  const labels = {
+    taijutsu: "Тайдзюцу", ninjutsu: "Ниндзюцу", genjutsu: "Гэндзюцу",
+    chakraControl: "Контроль чакры", intellect: "Интеллект", charisma: "Харизма"
+  };
+
+  container.innerHTML = Object.keys(state.stats).map(s => {
+    const val = state.stats[s] + (clanBonus[s] || 0);
+    return `
+      <div class="stat-row">
+        <span style="font-size:13px;">${labels[s]} <b style="color:var(--accent);">${val}</b> ${clanBonus[s]?`<small style="color:var(--success)">(+${clanBonus[s]})</small>`:''}</span>
+        <div>
+          <button class="stat-btn" onclick="modStat('${s}', -1)">-</button>
+          <button class="stat-btn" onclick="modStat('${s}', 1)">+</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function modStat(stat, delta) {
+  const total = state.stats[stat] + (state.clansData[state.clan].bonus[stat] || 0);
+  if (delta > 0 && state.pointsLeft > 0 && total < 8) {
+    state.stats[stat]++;
+    state.pointsLeft--;
+  } else if (delta < 0 && state.stats[stat] > 3) {
+    state.stats[stat]--;
+    state.pointsLeft++;
+  }
+  document.getElementById("pts").innerText = state.pointsLeft;
+  renderStatRows();
+}
+
+function finishCreation() {
+  state.name = document.getElementById("p-name").value || "Шиноби";
+  renderHub();
+}
+
+// --- 2. ЭКРАН ХАБА КОНОХИ ---
+function renderHub() {
+  dom.title.innerText = "Коноха — Хаб Деревни";
+  const hp = getMaxHp();
+  const chakra = getMaxChakra();
+
+  dom.content.innerHTML = `
+    <div class="card" style="border-color:var(--accent);">
+      <h3>${state.name} [Клан ${state.clansData[state.clan].name}]</h3>
+      <p class="sub">Стихия: ${state.elementNames[state.element]} | Ранг: Генин | Рё: ${state.ryo} 💴</p>
+      <div style="margin-top:6px; display:flex; gap:10px; font-weight:bold; font-size:12px;">
+        <span style="color:var(--danger);">❤ HP: ${hp}</span>
+        <span style="color:var(--blue);">🌀 Чакра: ${chakra}</span>
+        <span style="color:#f1c40f;">⚡ ОД: 3</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="sub">Выбери напарника на вылазку:</p>
+      <select id="partner-select" onchange="state.selectedPartner=this.value">
+        <option value="naruto" ${state.selectedPartner==='naruto'?'selected':''}>Наруто Узумаки (Связь: ${state.relations.naruto})</option>
+        <option value="sasuke" ${state.selectedPartner==='sasuke'?'selected':''}>Саске Учиха (Связь: ${state.relations.sasuke})</option>
+        <option value="hinata" ${state.selectedPartner==='hinata'?'selected':''}>Хината Хьюга (Связь: ${state.relations.hinata})</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <p class="sub">Доска миссий Хокаге</p>
+      <button class="choice-btn" onclick="startMissionD()">
+        🧹 <b>Миссия ранга D: Уборка у реки Нака</b><br>
+        <span class="sub">Бытовая тренировка. Награда: 300 рё, дружба.</span>
+      </button>
+
+      <button class="choice-btn" style="border-color:#e67e22;" onclick="startCombatMission()">
+        ⚔️ <b>Миссия ранга C: Патруль тракта Страны Чая</b><br>
+        <span class="sub">Опасность нападения беглых разбойников! Настоящий бой.</span>
+      </button>
+    </div>
+  `;
+}
+
+// Бытовая миссия D
+function startMissionD() {
+  state.ryo += 300;
+  state.relations[state.selectedPartner] += 5;
+  alert(`Миссия ранга D выполнена без происшествий!\n+300 Рё\nОтношения с напарником выросли (+5)`);
+  renderHub();
+}
+
+// --- 3. ИНИЦИАЛИЗАЦИЯ БОЯ РАНГА C ---
+function startCombatMission() {
+  const maxPlayerHp = getMaxHp();
+  const maxPlayerChakra = getMaxChakra();
+
+  combat = {
+    turn: 1,
+    playerHp: maxPlayerHp,
+    playerMaxHp: maxPlayerHp,
+    playerChakra: maxPlayerChakra,
+    playerMaxChakra: maxPlayerChakra,
+    ap: state.clan === 'nara' ? 4 : 3, // Пассивка Нара
+    kawarimiActive: false,
+    partnerUsed: false,
+    enemy: {
+      name: "Нукэнин Деревни Травы",
+      hp: 75,
+      maxHp: 75,
+      chakra: 50,
+      element: "wind"
+    },
+    logs: ["⚠️ Засада на мосту! Нукэнин обнажил клинок."]
+  };
+
+  renderBattleScreen();
+}
+
+function renderBattleScreen() {
+  dom.title.innerText = `Бой: Раунд ${combat.turn}`;
+
+  const playerHpPct = Math.max(0, Math.round((combat.playerHp / combat.playerMaxHp) * 100));
+  const enemyHpPct = Math.max(0, Math.round((combat.enemy.hp / combat.enemy.maxHp) * 100));
+  const jutsuCost = state.clan === 'sarutobi' ? 20 : 25; // Пассивка Сарутоби
+
+  dom.content.innerHTML = `
+    <!-- Враг -->
+    <div class="card" style="background:#20141a; border-color:#c0392b;">
+      <div style="display:flex; justify-content:space-between; font-size:12px;">
+        <b>🥷 ${combat.enemy.name}</b>
+        <span>${combat.enemy.hp} / ${combat.enemy.maxHp} HP</span>
+      </div>
+      <div class="battle-bar-container">
+        <div class="battle-bar" style="width:${enemyHpPct}%; background:var(--danger);"></div>
+      </div>
+    </div>
+
+    <!-- Лог боя -->
+    <div class="log-box" id="combat-log">
+      ${combat.logs.map(l => `<div>${l}</div>`).join('')}
+    </div>
+
+    <!-- Игрок -->
+    <div class="card" style="background:#131d27; border-color:var(--blue);">
+      <div style="display:flex; justify-content:space-between; font-size:12px;">
+        <b>🌀 ${state.name} [ОД: ${combat.ap}]</b>
+        <span>${combat.playerHp} / ${combat.playerMaxHp} HP</span>
+      </div>
+      <div class="battle-bar-container">
+        <div class="battle-bar" style="width:${playerHpPct}%; background:var(--success);"></div>
+      </div>
+      <p class="sub" style="margin-top:4px;">Чакра: ${combat.playerChakra}/${combat.playerMaxChakra} | Напарник: ${state.selectedPartner.toUpperCase()}</p>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="combat-grid">
+      <button class="action-btn" onclick="actionAttack()" ${combat.ap < 1 ? 'disabled':''}>
+        🗡️ Бросок куная<br><small>(1 ОД | +8 чакры)</small>
+      </button>
+
+      <button class="action-btn" onclick="actionJutsu(${jutsuCost})" ${combat.ap < 2 || combat.playerChakra < jutsuCost ? 'disabled':''}>
+        🔥 Стихийное Дзюцу<br><small>(2 ОД | ${jutsuCost} чакры)</small>
+      </button>
+
+      <button class="action-btn" onclick="actionKawarimi()" ${combat.ap < 1 || combat.kawarimiActive ? 'disabled':''}>
+        🪵 Замещение<br><small>(1 ОД | щит 80%)</small>
+      </button>
+
+      <button class="action-btn" onclick="actionPartner()" ${combat.ap < 2 || combat.partnerUsed ? 'disabled':''}>
+        👥 Помощь напарника<br><small>(2 ОД | 1 раз за бой)</small>
+      </button>
+    </div>
+
+    <button class="choice-btn" style="text-align:center; background:#1b2434;" onclick="endPlayerTurn()">
+      ⌛ Завершить ход (Передать инициативу)
+    </button>
+  `;
+
+  const logElem = document.getElementById("combat-log");
+  logElem.scrollTop = logElem.scrollHeight;
+}
+
+// Действие: Кунай
+function actionAttack() {
+  combat.ap -= 1;
+  const dmg = 8 + getEffectiveStat('taijutsu');
+  combat.enemy.hp -= dmg;
+  combat.playerChakra = Math.min(combat.playerMaxChakra, combat.playerChakra + 8);
+  combat.logs.push(`🗡️ Ты метнул кунай и нанес <b>${dmg}</b> урона (+8 чакры).`);
+  checkCombatState();
+}
+
+// Действие: Стихийное дзюцу
+function actionJutsu(cost) {
+  combat.ap -= 2;
+  combat.playerChakra -= cost;
+
+  let multiplier = 1.0;
+  // Колесо стихий: огонь > ветер
+  if (state.element === 'fire' && combat.enemy.element === 'wind') multiplier = 1.4;
+
+  const baseDmg = 16 + (getEffectiveStat('ninjutsu') * 2);
+  const dmg = Math.round(baseDmg * multiplier);
+  combat.enemy.hp -= dmg;
+
+  combat.logs.push(`✨ Дзюцу стихии [${state.elementNames[state.element]}] наносит <b>${dmg}</b> урона! ${multiplier > 1 ? '(Преимущество стихии!)':''}`);
+  checkCombatState();
+}
+
+// Действие: Каварими
+function actionKawarimi() {
+  combat.ap -= 1;
+  combat.kawarimiActive = true;
+  combat.logs.push(`🪵 Ты подготовил технику Замещения!`);
+  renderBattleScreen();
+}
+
+// Действие: Напарник
+function actionPartner() {
+  combat.ap -= 2;
+  combat.partnerUsed = true;
+
+  if (state.selectedPartner === 'naruto') {
+    const dmg = 15;
+    combat.enemy.hp -= dmg;
+    combat.logs.push(`🍜 Наруто влетел с теневыми клонами, нанеся <b>${dmg}</b> урона!`);
+  } else if (state.selectedPartner === 'sasuke') {
+    const dmg = 22;
+    combat.enemy.hp -= dmg;
+    combat.logs.push(`⚡ Саске пробил оборону сюрикенами с огнем: <b>${dmg}</b> урона!`);
+  } else {
+    combat.enemy.hp -= 10;
+    combat.logs.push(`🌸 Хината ударила в тенкецу мягким кулаком (-10 урона и ослабила врага)!`);
+  }
+  checkCombatState();
+}
+
+// Передача хода врагу
+function endPlayerTurn() {
+  combat.logs.push(`--- Ход врага ---`);
+
+  // Урон врага
+  let enemyDmg = Math.floor(Math.random() * 8) + 12;
+
+  if (combat.kawarimiActive) {
+    enemyDmg = Math.round(enemyDmg * 0.2);
+    combat.logs.push(`🪵 Враг рассек бревно замещения! Урон снижен до <b>${enemyDmg}</b>.`);
+    combat.kawarimiActive = false;
+  } else {
+    // Пассивка Сенджу
+    if (state.clan === 'senju') enemyDmg = Math.round(enemyDmg * 0.85);
+    combat.logs.push(`💥 Нукэнин атакует техникой ветра и наносит <b>${enemyDmg}</b> урона!`);
+  }
+
+  combat.playerHp -= enemyDmg;
+
+  // Регенерация Узумаки
+  if (state.clan === 'uzumaki' && combat.playerHp > 0) {
+    const heal = Math.round(combat.playerMaxHp * 0.05);
+    combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp + heal);
+    combat.logs.push(`💚 Витальность Узумаки восстановила +${heal} HP.`);
+  }
+
+  if (combat.playerHp <= 0) {
+    // Пассивка сироты
+    if (state.clan === 'orphan' && !combat.orphanUsed) {
+      combat.playerHp = 1;
+      combat.orphanUsed = true;
+      combat.logs.push(`🛡️ Несгибаемая воля удержала тебя на ногах с 1 HP!`);
+    } else {
+      renderBattleDefeat();
+      return;
+    }
+  }
+
+  // Сброс ОД на новый раунд
+  combat.turn++;
+  combat.ap = 3;
+  combat.logs.push(`--- Твой ход (Раунд ${combat.turn}) ---`);
+  renderBattleScreen();
+}
+
+function checkCombatState() {
+  if (combat.enemy.hp <= 0) {
+    renderBattleVictory();
+  } else {
+    renderBattleScreen();
+  }
+}
+
+// Экран победы
+function renderBattleVictory() {
+  state.ryo += 1200;
+  state.relations[state.selectedPartner] += 15;
+
+  dom.title.innerText = "Победа на миссии!";
+  dom.content.innerHTML = `
+    <div class="card" style="border-color:var(--success); text-align:center;">
+      <h2 style="color:var(--success);">Миссия ранга C выполнена!</h2>
+      <p style="margin-top:6px;">Вражеский отступник повержен и связан. Караван благополучно прибыл на заставу.</p>
+    </div>
+
+    <div class="card">
+      <p class="sub">Награды шиноби:</p>
+      <p>💴 Деньги: <b>+1,200 Рё</b></p>
+      <p>🤝 Отношения с [${state.selectedPartner.toUpperCase()}]: <b>+15</b></p>
+      <p>📜 Репутация в Конохе: <b>+1 ранг доверия Хокаге</b></p>
+    </div>
+
+    <button class="primary-btn" onclick="renderHub()">Вернуться в деревню Листа</button>
+  `;
+}
+
+// Экран поражения
+function renderBattleDefeat() {
+  dom.title.innerText = "Миссия провалена";
+  dom.content.innerHTML = `
+    <div class="card" style="border-color:var(--danger); text-align:center;">
+      <h2 style="color:var(--danger);">Ты потерял сознание...</h2>
+      <p style="margin-top:6px;">Напарник успел оттащить тебя и отступить в сторону Конохи. Госпиталь Листа поставил тебя на ноги.</p>
+    </div>
+    <button class="primary-btn" onclick="renderHub()">Очнуться в палате</button>
+  `;
+}
+
+// Старт игры
+renderCreation();
+</script>
+</body>
+</html>
