@@ -3,43 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Shinobi Chronicles: Visual Edition</title>
+  <title>Shinobi Chronicles</title>
   <style>
     :root {
-      --bg: #0d1117;
-      --panel-bg: rgba(22, 27, 34, 0.95);
+      --bg: #0b0e14;
+      --panel-bg: rgba(15, 20, 30, 0.95);
       --accent: #f39c12;
       --text: #f0f6fc;
       --subtext: #8b949e;
-      --danger: #f85149;
-      --success: #2ea043;
-      --blue: #58a6ff;
+      --danger: #e74c3c;
+      --success: #2ecc71;
+      --blue: #3498db;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #010409; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: var(--text); }
+    body { background-color: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: var(--text); }
     
     #app-container {
       width: 100%; max-width: 420px; height: 100vh; max-height: 860px;
       background: var(--bg); display: flex; flex-direction: column;
-      border: 1px solid #30363d; border-radius: 14px; overflow: hidden; position: relative;
+      border: 1px solid #30363d; border-radius: 12px; overflow: hidden; position: relative;
     }
 
-    /* СЦЕНА С ФОНОМ И СПРАЙТАМИ */
+    /* АНИМЕ СЦЕНА */
     #visual-stage {
-      height: 52%; width: 100%; position: relative;
+      height: 54%; width: 100%; position: relative;
       background-size: cover; background-position: center;
       display: flex; justify-content: center; align-items: flex-end;
-      overflow: hidden; border-bottom: 2px solid #30363d;
-      transition: background-image 0.4s ease;
+      overflow: hidden; border-bottom: 2px solid #2a3346;
+      background-color: #1a1e29;
+      transition: background-image 0.3s ease-in-out;
     }
 
     #char-sprite {
-      max-height: 92%; max-width: 80%; object-fit: contain;
-      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.7));
+      max-height: 95%; max-width: 85%; object-fit: contain;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.8));
       transition: transform 0.2s ease, filter 0.2s ease;
+      user-select: none;
     }
 
-    /* ЭФФЕКТЫ ТРЯСКИ И УРОНА */
+    /* ЭФФЕКТЫ УРОНА */
     .shake { animation: shakeAnim 0.3s ease-in-out; }
     @keyframes shakeAnim {
       0%, 100% { transform: translate(0, 0); }
@@ -47,11 +49,11 @@
       50% { transform: translate(8px, -4px); }
       75% { transform: translate(-4px, 2px); }
     }
-    .hit-flash { filter: brightness(2.5) drop-shadow(0 0 10px red) !important; }
+    .hit-flash { filter: brightness(2.5) drop-shadow(0 0 12px red) !important; }
 
     /* НИЖНЯЯ ПАНЕЛЬ ДИАЛОГОВ / ДЕЙСТВИЙ */
     #control-panel {
-      height: 48%; display: flex; flex-direction: column;
+      height: 46%; display: flex; flex-direction: column;
       padding: 12px; background: var(--panel-bg); gap: 8px; overflow-y: auto;
     }
 
@@ -62,29 +64,29 @@
     .dialogue-text { font-size: 13.5px; line-height: 1.45; color: var(--text); flex-grow: 1; }
 
     .choice-btn {
-      width: 100%; padding: 10px 12px; background: #21262d; border: 1px solid #30363d;
-      border-radius: 8px; color: var(--text); text-align: left; font-size: 12.5px;
+      width: 100%; padding: 10px 12px; background: #1c2333; border: 1px solid #374461;
+      border-radius: 8px; color: var(--text); text-align: left; font-size: 13px;
       cursor: pointer; transition: 0.15s;
     }
-    .choice-btn:active { background: #30363d; border-color: var(--accent); }
+    .choice-btn:active { background: #2a354d; border-color: var(--accent); }
 
     .primary-btn {
       width: 100%; padding: 11px; background: var(--accent); border: none;
       border-radius: 8px; color: #0d1117; font-size: 13.5px; font-weight: bold; cursor: pointer;
     }
 
-    /* БОЕВЫЕ ЭЛЕМЕНТЫ */
-    .hp-bar-bg { width: 100%; background: #21262d; height: 7px; border-radius: 4px; overflow: hidden; margin-top: 3px; }
-    .hp-bar-fill { height: 100%; background: var(--success); transition: width 0.3s ease; }
+    /* БОЕВОЙ ИНТЕРФЕЙС */
     .battle-hud { position: absolute; top: 10px; width: 92%; display: flex; justify-content: space-between; gap: 10px; z-index: 10; }
     .hud-box { background: rgba(13, 17, 23, 0.85); backdrop-filter: blur(4px); padding: 6px 10px; border-radius: 6px; border: 1px solid #30363d; flex: 1; font-size: 11px; }
+    .hp-bar-bg { width: 100%; background: #21262d; height: 7px; border-radius: 4px; overflow: hidden; margin-top: 3px; }
+    .hp-bar-fill { height: 100%; background: var(--success); transition: width 0.3s ease; }
     .combat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   </style>
 </head>
 <body>
 
 <div id="app-container">
-  <!-- ВЕРХНЯЯ ВИЗУАЛЬНАЯ СЦЕНА -->
+  <!-- ВЕРХ: ФОН + ПЕРСОНАЖ -->
   <div id="visual-stage">
     <div class="battle-hud" id="battle-hud" style="display:none;">
       <div class="hud-box">
@@ -92,40 +94,45 @@
         <div class="hp-bar-bg"><div class="hp-bar-fill" id="p-hp-bar"></div></div>
       </div>
       <div class="hud-box" style="text-align:right;">
-        <span id="enemy-hud-name" style="color:var(--danger);">Отступник</span>
+        <span id="enemy-hud-name" style="color:var(--danger);">Нукэнин</span>
         <div class="hp-bar-bg"><div class="hp-bar-fill" id="e-hp-bar" style="background:var(--danger); float:right;"></div></div>
       </div>
     </div>
     <img id="char-sprite" src="" alt="character" style="display:none;">
   </div>
 
-  <!-- НИЖНЯЯ ПАНЕЛЬ ИГРЫ -->
+  <!-- НИЗ: ДИАЛОГ И КНОПКИ -->
   <div id="control-panel"></div>
 </div>
 
 <script>
-// --- АССЕТЫ ВИЗУАЛА (ФОНЫ И СПРАЙТЫ) ---
+// ==========================================
+// 🎨 НАСТОЯЩИЕ КАРТИНКИ ИЗ ВСЕЛЕННОЙ НАРУТО
+// Ты можешь заменить любую из этих ссылок на свою собственную!
+// ==========================================
 const ASSETS = {
   bg: {
-    academy: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80",
-    konoha: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80",
-    forest: "https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=800&q=80"
+    // Класс Академии
+    academy: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/3c8b4c05-ea78-4395-83e9-74e9e431f90e/de7v7y1-6bcefc2f-90e6-42bb-954f-124b17f53da5.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9",
+    // Деревня Коноха со скалой Хокаге
+    konoha: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/d9ff6ebf-a185-48b6-9df3-9e5884ae72bb/de7v89b-8ec64df2-70b9-43c3-b0eb-8f5539df8b1a.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9",
+    // Лес Страны Огня для боев
+    forest: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/3c8b4c05-ea78-4395-83e9-74e9e431f90e/de7v7vd-df6a4ae0-a249-411a-bdcf-b0d59299b9cf.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9"
   },
   sprites: {
-    iruka: "https://api.dicebear.com/7.x/bottts/svg?seed=iruka", // заполнители
-    naruto: "https://api.dicebear.com/7.x/adventurer/svg?seed=Naruto&hair=short02&hairColor=f1c40f",
-    sasuke: "https://api.dicebear.com/7.x/adventurer/svg?seed=Sasuke&hair=short01&hairColor=2c3e50",
-    hinata: "https://api.dicebear.com/7.x/adventurer/svg?seed=Hinata&hair=long01&hairColor=34495e",
-    enemy: "https://api.dicebear.com/7.x/bottts/svg?seed=rogueNinja"
+    // Каноничные прозрачные PNG рендеры героев
+    iruka: "https://freepngimg.com/thumb/naruto/103131-iruka-naruto-free-download-png-hd.png",
+    naruto: "https://freepngimg.com/thumb/naruto/8-2-naruto-png-picture.png",
+    sasuke: "https://freepngimg.com/thumb/naruto/102985-sasuke-naruto-free-download-png-hd.png",
+    hinata: "https://freepngimg.com/thumb/naruto/102924-hinata-naruto-free-download-png-hd.png",
+    enemy: "https://freepngimg.com/thumb/naruto/103157-ninja-naruto-free-download-png-hd.png"
   }
 };
 
 const state = {
   name: "Рэн",
-  clan: "uzumaki",
-  element: "fire",
-  elementNames: { fire: "Огонь", wind: "Ветер", lightning: "Молния", earth: "Земля", water: "Вода" },
-  stats: { taijutsu: 4, ninjutsu: 4, chakraControl: 5 },
+  clan: "Узумаки",
+  element: "Огонь",
   relations: { naruto: 10, sasuke: 5, hinata: 15 },
   selectedPartner: "naruto",
   ryo: 500
@@ -148,16 +155,26 @@ function setScene(bgUrl, spriteUrl = null) {
   }
 }
 
-// 1. СЦЕНА ВРУЧЕНИЯ ПРОТЕКТОРА
+// 1. ВРУЧЕНИЕ ПРОТЕКТОРА ИРУКОЙ
 function scenePrologue() {
   battleHud.style.display = "none";
-  setScene(ASSETS.bg.academy, ASSETS.sprites.naruto);
+  setScene(ASSETS.bg.academy, ASSETS.sprites.iruka);
 
   panel.innerHTML = `
     <div class="speaker-name">Ирука Умино</div>
     <div class="dialogue-text">
-      «Поздравляю, ${state.name}! Ты сдал выпускной тест Академии. С этого дня ты шиноби Деревни Скрытого Листа. Сделай свой выбор: к кому ты подойдешь в коридоре?»
+      «Поздравляю с выпуском, ${state.name}! Ты сдал финальный экзамен по клонированию. С сегодняшнего дня ты — шиноби Конохи! Выходи в коридор, скоро назовут составы команд.»
     </div>
+    <button class="primary-btn" onclick="sceneHallway()">Выйти в коридор Академии →</button>
+  `;
+}
+
+// 2. ВЫБОР ДИАЛОГА В КОРИДОРЕ
+function sceneHallway() {
+  setScene(ASSETS.bg.academy, null);
+  panel.innerHTML = `
+    <div class="speaker-name">Коридор выпускников</div>
+    <div class="dialogue-text">Все празднуют получение протекторов. К кому ты хочешь подойти поговорить?</div>
     <button class="choice-btn" onclick="talkNaruto()">🍜 Подойти к Наруто</button>
     <button class="choice-btn" onclick="talkSasuke()">⚡ Подойти к Саске</button>
     <button class="choice-btn" onclick="talkHinata()">🌸 Подойти к Хинате</button>
@@ -168,9 +185,7 @@ function talkNaruto() {
   setScene(ASSETS.bg.academy, ASSETS.sprites.naruto);
   panel.innerHTML = `
     <div class="speaker-name">Наруто Узумаки</div>
-    <div class="dialogue-text">
-      «Видал мой протектор?! Мы теперь настоящие ниндзя! Спорим, я стану Хокаге быстрее всех вас?!»
-    </div>
+    <div class="dialogue-text">«Хэй, ${state.name}! Видал мой протектор?! Теперь я шиноби! Спорим, я стану Хокаге быстрее всех вас?!»</div>
     <button class="choice-btn" onclick="state.relations.naruto+=10; sceneKonohaHub();">
       «Я верю в тебя, Наруто! Покажем всем класс!» (+10 дружбы)
     </button>
@@ -181,11 +196,9 @@ function talkSasuke() {
   setScene(ASSETS.bg.academy, ASSETS.sprites.sasuke);
   panel.innerHTML = `
     <div class="speaker-name">Саске Учиха</div>
-    <div class="dialogue-text">
-      «Повязка на лбу еще никого не сделала сильным. Настоящий отбор начнется на первой же миссии.»
-    </div>
+    <div class="dialogue-text">«Повязка в стенах школы ничего не стоит. Настоящий отбор начнется на первой же миссии.»</div>
     <button class="choice-btn" onclick="state.relations.sasuke+=10; sceneKonohaHub();">
-      «Посмотрим в первом же спарринге, Саске.» (+10 соперничества)
+      «Посмотрим в первом же спарринге, Саске.» (+10 уважения)
     </button>
   `;
 }
@@ -194,41 +207,39 @@ function talkHinata() {
   setScene(ASSETS.bg.academy, ASSETS.sprites.hinata);
   panel.innerHTML = `
     <div class="speaker-name">Хината Хьюга</div>
-    <div class="dialogue-text">
-      «А... эм... ${state.name}... Поздравляю с выпуском... Твой контроль чакры был очень впечатляющим...»
-    </div>
+    <div class="dialogue-text">«А... эм... ${state.name}... Поздравляю с выпуском... Твой контроль чакры был очень впечатляющим...»</div>
     <button class="choice-btn" onclick="state.relations.hinata+=15; sceneKonohaHub();">
-      «Спасибо, Хината! Твой стиль тоже прекрасен.» (+15 симпатии)
+      «Спасибо, Хината! Твой Мягкий кулак тоже лучший.» (+15 симпатии)
     </button>
   `;
 }
 
-// 2. ХАБ КОНОХИ
+// 3. ХАБ КОНОХИ
 function sceneKonohaHub() {
   battleHud.style.display = "none";
   setScene(ASSETS.bg.konoha, null);
 
   panel.innerHTML = `
-    <div class="speaker-name">Главные ворота Конохи</div>
+    <div class="speaker-name">Деревня Скрытого Листа (Хаб)</div>
     <div class="dialogue-text">
-      Ты на улицах Деревни Листа. В кармане <b>${state.ryo} Рё</b>.<br>
-      Связь: 🍜 Наруто (${state.relations.naruto}) | ⚡ Саске (${state.relations.sasuke}) | 🌸 Хината (${state.relations.hinata})
+      Ты на улицах деревни. В кошельке: <b>${state.ryo} Рё</b>.<br>
+      Связи: 🍜 Наруто (${state.relations.naruto}) | ⚡ Саске (${state.relations.sasuke}) | 🌸 Хината (${state.relations.hinata})
     </div>
 
-    <div style="font-size:11px; color:var(--subtext); margin-bottom:4px;">Выбери напарника:</div>
+    <div style="font-size:11px; color:var(--subtext); margin-bottom:4px;">Выбери напарника на вылазку:</div>
     <div style="display:flex; gap:6px;">
-      <button class="choice-btn" style="text-align:center;" onclick="state.selectedPartner='naruto'; alert('Напарник: Наруто');">Наруто</button>
-      <button class="choice-btn" style="text-align:center;" onclick="state.selectedPartner='sasuke'; alert('Напарник: Саске');">Саске</button>
-      <button class="choice-btn" style="text-align:center;" onclick="state.selectedPartner='hinata'; alert('Напарник: Хината');">Хината</button>
+      <button class="choice-btn" style="text-align:center;" onclick="state.selectedPartner='naruto'; alert('Выбран Наруто!');">Наруто</button>
+      <button class="choice-btn" style="text-align:center;" onclick="state.selectedPartner='sasuke'; alert('Выбран Саске!');">Саске</button>
+      <button class="choice-btn" style="text-align:center;" onclick="state.selectedPartner='hinata'; alert('Выбрана Хината!');">Хината</button>
     </div>
 
     <button class="primary-btn" style="margin-top:auto;" onclick="startCombatScene()">
-      ⚔️ Выйти на миссию ранга C (Засада в лесу) →
+      ⚔️ Начать боевую миссию ранга C (Засада в лесу) →
     </button>
   `;
 }
 
-// 3. БОЕВАЯ ВИЗУАЛЬНАЯ СЦЕНА
+// 4. БОЙ В ЛЕСУ
 function startCombatScene() {
   combat = {
     turn: 1,
@@ -261,7 +272,7 @@ function triggerHitAnimation() {
   }, 350);
 }
 
-function renderCombatTurn(message = "Твой черед действовать! Выбери тактику:") {
+function renderCombatTurn(message = "Твой ход! Выбери действие:") {
   updateHudBars();
   panel.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -272,11 +283,11 @@ function renderCombatTurn(message = "Твой черед действовать!
 
     <div class="combat-grid">
       <button class="choice-btn" onclick="combatAttack()" ${combat.ap < 1 ? 'disabled':''}>
-        🗡️ Бросок куная<br><small>1 ОД (+8 чакры)</small>
+        🗡️️ Бросок куная<br><small>1 ОД (+8 чакры)</small>
       </button>
 
       <button class="choice-btn" onclick="combatJutsu()" ${combat.ap < 2 || combat.pChakra < 25 ? 'disabled':''}>
-        🔥 Стихия: ${state.elementNames[state.element]}<br><small>2 ОД (25 чакры)</small>
+        🔥 Стихия Огня<br><small>2 ОД (25 чакры)</small>
       </button>
 
       <button class="choice-btn" onclick="combatKawarimi()" ${combat.ap < 1 || combat.kawarimi ? 'disabled':''}>
@@ -284,7 +295,7 @@ function renderCombatTurn(message = "Твой черед действовать!
       </button>
 
       <button class="choice-btn" onclick="combatPartner()" ${combat.ap < 2 ? 'disabled':''}>
-        👥 Удар напарника<br><small>2 ОД [${state.selectedPartner.toUpperCase()}]</small>
+        👥 Атака напарника<br><small>2 ОД [${state.selectedPartner.toUpperCase()}]</small>
       </button>
     </div>
 
@@ -300,7 +311,7 @@ function combatAttack() {
   combat.eHp -= dmg;
   combat.pChakra = Math.min(combat.pMaxChakra, combat.pChakra + 8);
   triggerHitAnimation();
-  checkBattle("🗡️ Ты метнул кунай прямо в цель: -" + dmg + " HP врагу!");
+  checkBattle("🗡️ Меткий бросок куная: -" + dmg + " HP врагу!");
 }
 
 function combatJutsu() {
@@ -309,13 +320,13 @@ function combatJutsu() {
   const dmg = 24;
   combat.eHp -= dmg;
   triggerHitAnimation();
-  checkBattle("✨ Мощная стихийная техника сокрушает оборону: -" + dmg + " HP!");
+  checkBattle("🔥 Стихийный огненный шар сжигает защиту: -" + dmg + " HP!");
 }
 
 function combatKawarimi() {
   combat.ap -= 1;
   combat.kawarimi = true;
-  renderCombatTurn("🪵 Техника замещения активирована. Ты готов к контратаке.");
+  renderCombatTurn("🪵 Подготовлена замена на бревно.");
 }
 
 function combatPartner() {
@@ -323,7 +334,7 @@ function combatPartner() {
   const dmg = 18;
   combat.eHp -= dmg;
   triggerHitAnimation();
-  checkBattle(`👥 Твой напарник ${state.selectedPartner.toUpperCase()} внезапно атаковал с фланга: -${dmg} HP!`);
+  checkBattle(`👥 Напарник ${state.selectedPartner.toUpperCase()} внезапно ворвался в бой: -${dmg} HP врагу!`);
 }
 
 function enemyTurn() {
@@ -334,7 +345,7 @@ function enemyTurn() {
     combat.kawarimi = false;
     log = "🪵 Враг рассек бревно подмены! Ты получил всего 3 урона.";
   } else {
-    log = `💥 Отступник ударил ветряным лезвием: -${dmg} HP!`;
+    log = `💥 Нукэнин атакует клинком ветра: -${dmg} HP!`;
   }
 
   stage.classList.add("shake");
@@ -348,7 +359,7 @@ function enemyTurn() {
     battleHud.style.display = "none";
     panel.innerHTML = `
       <div class="speaker-name" style="color:var(--danger);">Поражение</div>
-      <div class="dialogue-text">Ты потерял сознание от полученных ран. Напарник успел вытащить тебя из боя.</div>
+      <div class="dialogue-text">Ты потерял сознание. Напарник успел оттащить тебя обратно в Коноху.</div>
       <button class="primary-btn" onclick="sceneKonohaHub()">Очнуться в палате Конохи</button>
     `;
     return;
@@ -363,16 +374,16 @@ function checkBattle(lastActionLog) {
     sprite.style.display = "none";
     state.ryo += 1000;
     panel.innerHTML = `
-      <div class="speaker-name" style="color:var(--success);">Миссия выполнена!</div>
-      <div class="dialogue-text">Отступник повержен! Дорога в Страну Чая свободна.<br>Награда: <b>+1,000 Рё</b>, рост доверия деревни.</div>
-      <button class="primary-btn" onclick="sceneKonohaHub()">Вернуться с триумфом в Коноху</button>
+      <div class="speaker-name" style="color:var(--success);">Победа на миссии!</div>
+      <div class="dialogue-text">Отступник повержен! Торговый караван спасен.<br>Награда: <b>+1,000 Рё</b>, +15 к связи с напарником.</div>
+      <button class="primary-btn" onclick="sceneKonohaHub()">Вернуться в Коноху</button>
     `;
   } else {
     renderCombatTurn(lastActionLog);
   }
 }
 
-// Старт с пролога
+// Старт игры
 scenePrologue();
 </script>
 </body>
